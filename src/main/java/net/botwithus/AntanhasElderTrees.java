@@ -154,6 +154,10 @@ public class AntanhasElderTrees extends LoopingScript {
 
     private long handleWoodcutting(LocalPlayer player) {
 
+        //teleport an urn as soon as possible so we don't have to worry about the interface that pops up if we try to teleport more than 1
+        if(Backpack.contains("Decorated woodcutting urn (full)")) {
+            Backpack.interact("Decorated woodcutting urn (full)", "Teleport urn");
+        }
         //the break condition while woodcutting is if we get our backpack full. notice that this condition works here because handleWoodcutting() doesn't clog up onLoop, so this function will be called up often
         if (Backpack.isFull()) {
             Execution.delay(random.nextLong(500,1500));
@@ -229,8 +233,8 @@ public class AntanhasElderTrees extends LoopingScript {
             Execution.delay(random.nextLong(1000, 3000));
         }
         //it looks like .depositAllExcept(String... names) is currently broken, so I have to use .depositAllExcept(Int... ids)
-        //Execution.delayUntil(random.nextLong(1500, 3000), () -> Bank.depositAllExcept("Elder wood box"));
-        Execution.delayUntil(random.nextLong(1500, 3000), () -> Bank.depositAllExcept(54913));
+        //Execution.delayUntil(random.nextLong(1500, 3000), () -> Bank.depositAllExcept("Elder wood box", "Decorated woodcutting urn (r)", "Decorated woodcutting urn", "Decorated woodcutting urn (full)"));
+        Execution.delayUntil(random.nextLong(1500, 3000), () -> Bank.depositAllExcept(54913, 39012, 39014, 39015));
         //Execution.delay(random.nextLong(1000,2000));
         //Bank.close();
         //Execution.delay(random.nextLong(1000,2000));

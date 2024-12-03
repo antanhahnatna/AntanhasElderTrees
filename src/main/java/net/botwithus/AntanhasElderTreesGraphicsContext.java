@@ -37,7 +37,7 @@ public class AntanhasElderTreesGraphicsContext extends ScriptGraphicsContext {
             ImGui.Separator();
             ImGui.Text("Instructions:");
             ImGui.Text("Requires War's Retreat teleport to be unlocked or that you have Ring of Fortune or Luck of the Dwarves equipped.");
-            ImGui.Text("It'll pick bird's nests up, and it'll use the elder wood box if you leave it in your inventory.");
+            ImGui.Text("It'll pick bird's nests up, and it'll use decorated urns and/or elder wood box if you leave them in your inventory.");
             ImGui.Text("Make sure your backpack and magic (if using War's Retreat teleport) or equipment (if using Ring of Fortune or Luck of the Dwarves) menus are open, then start the script.");
             ImGui.End();
         }
