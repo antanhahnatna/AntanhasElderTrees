@@ -18,9 +18,8 @@ public class AntanhasElderTreesGraphicsContext extends ScriptGraphicsContext {
 
     @Override
     public void drawSettings() {
-        if (ImGui.Begin("My script", ImGuiWindowFlag.None.getValue())) {
-            ImGui.Text("Welcome to my script!");
-            ImGui.Text("My scripts state is: " + script.getBotState());
+        if (ImGui.Begin("Antanha's elder trees", ImGuiWindowFlag.None.getValue())) {
+            ImGui.Text("Script state: " + script.getBotState());
             ImGui.BeginDisabled(script.getBotState() != AntanhasElderTrees.BotState.STOPPED);
             if (ImGui.Button("Start")) {
                 //button has been clicked
@@ -37,7 +36,7 @@ public class AntanhasElderTreesGraphicsContext extends ScriptGraphicsContext {
             ImGui.Separator();
             ImGui.Text("Instructions:");
             ImGui.Text("Requires War's Retreat teleport to be unlocked or that you have Ring of Fortune or Luck of the Dwarves equipped.");
-            ImGui.Text("It'll pick bird's nests up, and it'll use decorated urns and/or elder wood box if you leave them in your inventory.");
+            ImGui.Text("It'll pick bird's nests up, and it'll use decorated urns and/or wood box if you leave them in your inventory.");
             ImGui.Text("Make sure your backpack and magic (if using War's Retreat teleport) or equipment (if using Ring of Fortune or Luck of the Dwarves) menus are open, then start the script.");
             ImGui.End();
         }

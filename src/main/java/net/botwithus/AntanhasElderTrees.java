@@ -24,10 +24,12 @@ import net.botwithus.rs3.game.vars.VarManager;
 import net.botwithus.rs3.script.Execution;
 import net.botwithus.rs3.script.LoopingScript;
 import net.botwithus.rs3.script.config.ScriptConfig;
+import net.botwithus.rs3.util.Regex;
 
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Random;
+import java.util.regex.Pattern;
 
 public class AntanhasElderTrees extends LoopingScript {
 
@@ -166,6 +168,10 @@ public class AntanhasElderTrees extends LoopingScript {
                 Backpack.interact("Elder wood box", "Fill");
                 Execution.delay(random.nextLong(1500,3000));
             }
+            if (Backpack.contains("Eternal magic wood box")) {
+                Backpack.interact("Eternal magic wood box", "Fill");
+                Execution.delay(random.nextLong(1500,3000));
+            }
             //if inventory is still full after filling the wood box, go to bank
             if (Backpack.isFull()) {
                 if (botState != BotState.STOPPED) botState = BotState.MOVINGTOBANK;
@@ -176,7 +182,7 @@ public class AntanhasElderTrees extends LoopingScript {
         GroundItem birdsNest = GroundItemQuery.newQuery().name("Bird's nest").results().nearest();
         if(birdsNest != null) {
             birdsNest.interact(GroundItemAction.GROUND_ITEM3);
-            //we have to rely on pickedUpBirdsNest set y a subscription in order to know when we picked up the bird's nest
+            //we have to rely on pickedUpBirdsNest set by a subscription in order to know when we picked up the bird's nest
             Execution.delayUntil(20000, () -> {
                 return pickedUpBirdsNest;
             });
@@ -227,14 +233,14 @@ public class AntanhasElderTrees extends LoopingScript {
         }
         */
         //also, we can't directly interact with the wood box from its Item returned by an inv query, so we have to use its component; ".newQuery(517).componentIndex(15)" adresses the inventory when the bank is open
-        Component woodBoxComp = ComponentQuery.newQuery(517).componentIndex(15).itemName("Elder wood box").option("Empty - logs and bird's nests").results().first();
+        Component woodBoxComp = ComponentQuery.newQuery(517).componentIndex(15).itemName(Pattern.compile("ood box")).option("Empty - logs and bird's nests").results().first();
         if (woodBoxComp != null) {
             println("Deposited box contents: " + woodBoxComp.interact("Empty - logs and bird's nests"));
             Execution.delay(random.nextLong(1000, 3000));
         }
         //it looks like .depositAllExcept(String... names) is currently broken, so I have to use .depositAllExcept(Int... ids)
-        //Execution.delayUntil(random.nextLong(1500, 3000), () -> Bank.depositAllExcept("Elder wood box", "Decorated woodcutting urn (r)", "Decorated woodcutting urn", "Decorated woodcutting urn (full)"));
-        Execution.delayUntil(random.nextLong(1500, 3000), () -> Bank.depositAllExcept(54913, 39012, 39014, 39015));
+        //Execution.delayUntil(random.nextLong(1500, 3000), () -> Bank.depositAllExcept("Elder wood box", "Eternal magic wood box", "Decorated woodcutting urn (r)", "Decorated woodcutting urn", "Decorated woodcutting urn (full)"));
+        Execution.delayUntil(random.nextLong(1500, 3000), () -> Bank.depositAllExcept(54913, 58253, 39012, 39014, 39015));
         //Execution.delay(random.nextLong(1000,2000));
         //Bank.close();
         //Execution.delay(random.nextLong(1000,2000));
