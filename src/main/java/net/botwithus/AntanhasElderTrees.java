@@ -24,7 +24,6 @@ import net.botwithus.rs3.game.vars.VarManager;
 import net.botwithus.rs3.script.Execution;
 import net.botwithus.rs3.script.LoopingScript;
 import net.botwithus.rs3.script.config.ScriptConfig;
-import net.botwithus.rs3.util.Regex;
 
 import java.util.LinkedList;
 import java.util.Queue;
