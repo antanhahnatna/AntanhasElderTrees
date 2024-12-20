@@ -20,14 +20,17 @@ import net.botwithus.rs3.game.queries.builders.objects.SceneObjectQuery;
 import net.botwithus.rs3.game.scene.entities.characters.player.LocalPlayer;
 import net.botwithus.rs3.game.scene.entities.item.GroundItem;
 import net.botwithus.rs3.game.scene.entities.object.SceneObject;
+import net.botwithus.rs3.game.skills.Skills;
 import net.botwithus.rs3.game.vars.VarManager;
 import net.botwithus.rs3.script.Execution;
 import net.botwithus.rs3.script.LoopingScript;
 import net.botwithus.rs3.script.config.ScriptConfig;
 
+import java.text.NumberFormat;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 public class AntanhasElderTrees extends LoopingScript {
@@ -38,6 +41,11 @@ public class AntanhasElderTrees extends LoopingScript {
     //this variable will sotre the Coordinates of the elder trees, but we can't quite initialize it yet
     private Queue<Coordinate> elderTrees = new LinkedList<>();
     private Boolean pickedUpBirdsNest = false;
+    LinkedList<String> logNames = new LinkedList<>();
+    LinkedList<Integer> logAmounts = new LinkedList<>();
+    int startingExperience = Skills.WOODCUTTING.getSkill().getExperience();
+    long startingTime = System.currentTimeMillis();
+    long timeScriptWasLastActive = System.currentTimeMillis();
 
     enum BotState {
         //define your own states here
@@ -55,12 +63,11 @@ public class AntanhasElderTrees extends LoopingScript {
         this.sgc = new AntanhasElderTreesGraphicsContext(getConsole(), this);
     }
 
-    //not used by this rewrite of mine, but I'm commenting it out instead of deleting in case I need it
     @Override
     public boolean initialize() {
         super.initialize();
 
-        //initializing the 3 elder trees spots we will be using
+        //initializing the 3 elder tree spots we will be using
         //south of Varrock
         elderTrees.add(new Coordinate(3257, 3371, 0));
         //south of Edgeville
@@ -73,6 +80,29 @@ public class AntanhasElderTrees extends LoopingScript {
             if(inventoryUpdateEvent.getInventoryId() == 93) {
                 if(inventoryUpdateEvent.getNewItem().getName().equals("Bird's nest") && inventoryUpdateEvent.getOldItem().getName() == null) {
                     pickedUpBirdsNest = true;
+                }
+            }
+        });
+
+        subscribe(InventoryUpdateEvent.class, inventoryUpdateEvent -> {
+            //more events available at https://botwithus.net/javadoc/net.botwithus.rs3/net/botwithus/rs3/events/impl/package-summary.html
+            //println("Chatbox message received: %s", chatMessageEvent.getMessage());
+            if(inventoryUpdateEvent.getNewItem().getName() != null && (inventoryUpdateEvent.getInventoryId() == 93 || (inventoryUpdateEvent.getInventoryId() == 937 && !inventoryUpdateEvent.getNewItem().getName().equals("Elder logs")) ) && botState != BotState.STOPPED) {
+                int increment;
+                if (inventoryUpdateEvent.getOldItem().getName() == null) {
+                    increment = inventoryUpdateEvent.getNewItem().getStackSize();
+                } else if (inventoryUpdateEvent.getNewItem().getName().equals(inventoryUpdateEvent.getOldItem().getName()) && inventoryUpdateEvent.getNewItem().getStackSize() > inventoryUpdateEvent.getOldItem().getStackSize()) {
+                    increment = inventoryUpdateEvent.getNewItem().getStackSize() - inventoryUpdateEvent.getOldItem().getStackSize();
+                } else {
+                    increment = 0;
+                }
+                if(increment > 0) {
+                    if (logNames.contains(inventoryUpdateEvent.getNewItem().getName())) {
+                        logAmounts.set(logNames.indexOf(inventoryUpdateEvent.getNewItem().getName()), logAmounts.get(logNames.indexOf(inventoryUpdateEvent.getNewItem().getName())) + increment);
+                    } else {
+                        logNames.push(inventoryUpdateEvent.getNewItem().getName());
+                        logAmounts.push(increment);
+                    }
                 }
             }
         });
@@ -244,6 +274,43 @@ public class AntanhasElderTrees extends LoopingScript {
         //Bank.close();
         //Execution.delay(random.nextLong(1000,2000));
         return random.nextLong(1500,3000);
+    }
+
+    //the big String containing all text in the stats
+    String logString() {
+        int xpGained = Skills.WOODCUTTING.getSkill().getExperience() - startingExperience;
+        String bigString = "Time elapsed: " + timeElapsed() + "\n";
+        bigString = bigString + "Experience gained: " + xpGained + " (" + calculatePerHour(xpGained) + " / hr)\n";
+        for(var i = logNames.size() - 1; i >= 0; i--) {
+            bigString = bigString + logNames.get(i) + " x " + logAmounts.get(i) + " (" + calculatePerHour(logAmounts.get(i)) + " / hr)\n";
+        }
+        return bigString;
+    }
+
+    //used by logString()
+    public String calculatePerHour(int toBeCalculated) {
+        long timeToConsider = botState != BotState.STOPPED ? System.currentTimeMillis() : timeScriptWasLastActive;
+
+        long timeElapsedMillis = timeToConsider - startingTime;
+
+        long xpPerHour = (long) (toBeCalculated / (timeElapsedMillis / 3600000.0));
+
+        NumberFormat numberFormat = NumberFormat.getInstance();
+        String formattedPerHour = numberFormat.format(xpPerHour);
+
+        return formattedPerHour;
+    }
+
+    //used by logString()
+    public String timeElapsed() {
+        long endingTime = botState != BotState.STOPPED ? System.currentTimeMillis() : timeScriptWasLastActive;;
+        long elapsedTime = endingTime - startingTime;
+
+        long hours = TimeUnit.MILLISECONDS.toHours(elapsedTime);
+        long minutes = TimeUnit.MILLISECONDS.toMinutes(elapsedTime) % 60;
+        long seconds = TimeUnit.MILLISECONDS.toSeconds(elapsedTime) % 60;
+
+        return String.format("%02d:%02d:%02d", hours, minutes, seconds);
     }
 
     public BotState getBotState() {
