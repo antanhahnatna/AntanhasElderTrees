@@ -1,5 +1,6 @@
 package net.botwithus;
 
+import net.botwithus.rs3.game.hud.interfaces.Interfaces;
 import net.botwithus.api.game.hud.inventories.Bank;
 import net.botwithus.internal.scripts.ScriptDefinition;
 import net.botwithus.rs3.events.impl.InventoryUpdateEvent;
@@ -41,6 +42,8 @@ public class AntanhasElderTrees extends LoopingScript {
     //this variable will sotre the Coordinates of the elder trees, but we can't quite initialize it yet
     private Queue<Coordinate> elderTrees = new LinkedList<>();
     private Boolean pickedUpBirdsNest = false;
+    private Boolean hasNormalJujuPotion = false;
+    private Boolean hasPerfectJujuPotion = false;
     LinkedList<String> logNames = new LinkedList<>();
     LinkedList<Integer> logAmounts = new LinkedList<>();
     int startingExperience = Skills.WOODCUTTING.getSkill().getExperience();
@@ -84,10 +87,12 @@ public class AntanhasElderTrees extends LoopingScript {
             }
         });
 
+        //this subscription updates the item log
         subscribe(InventoryUpdateEvent.class, inventoryUpdateEvent -> {
             //more events available at https://botwithus.net/javadoc/net.botwithus.rs3/net/botwithus/rs3/events/impl/package-summary.html
             //println("Chatbox message received: %s", chatMessageEvent.getMessage());
-            if(inventoryUpdateEvent.getNewItem().getName() != null && (inventoryUpdateEvent.getInventoryId() == 93 || (inventoryUpdateEvent.getInventoryId() == 937 && !inventoryUpdateEvent.getNewItem().getName().equals("Elder logs")) ) && botState != BotState.STOPPED) {
+            //only update log if: a new item appears in the inv, or in the wood box other than an eternal magic log, and the script isn't stopped, and the bank interface isn't open
+            if(inventoryUpdateEvent.getNewItem().getName() != null && (inventoryUpdateEvent.getInventoryId() == 93 || (inventoryUpdateEvent.getInventoryId() == 937 && !inventoryUpdateEvent.getNewItem().getName().equals("Eternal magic logs")) ) && botState != BotState.STOPPED && !Interfaces.isOpen(517)) {
                 int increment;
                 if (inventoryUpdateEvent.getOldItem().getName() == null) {
                     increment = inventoryUpdateEvent.getNewItem().getStackSize();
@@ -112,7 +117,7 @@ public class AntanhasElderTrees extends LoopingScript {
 
     @Override
     public void onLoop() {
-        println("onLoop()");
+        //println("onLoop()");
 
         //Loops every 100ms by default, to change:
         this.loopDelay = 500;
@@ -131,6 +136,38 @@ public class AntanhasElderTrees extends LoopingScript {
             }
             //this only gets called when the start button is clicked, it can't clog onLoop() up
             case SETUP -> {
+                if(
+                        Backpack.contains("Juju woodcutting potion (1)")
+                                || Backpack.contains("Juju woodcutting potion (2)")
+                                || Backpack.contains("Juju woodcutting potion (3)")
+                                || Backpack.contains("Juju woodcutting potion (4)")
+                                || Backpack.contains("Juju woodcutting flask (1)")
+                                || Backpack.contains("Juju woodcutting flask (2)")
+                                || Backpack.contains("Juju woodcutting flask (3)")
+                                || Backpack.contains("Juju woodcutting flask (4)")
+                                || Backpack.contains("Juju woodcutting flask (5)")
+                                || Backpack.contains("Juju woodcutting flask (6)")
+                ) {
+                    hasNormalJujuPotion = true;
+                } else {
+                    hasNormalJujuPotion = false;
+                }
+                if(
+                        Backpack.contains("Perfect juju woodcutting potion (1)")
+                                || Backpack.contains("Perfect juju woodcutting potion (2)")
+                                || Backpack.contains("Perfect juju woodcutting potion (3)")
+                                || Backpack.contains("Perfect juju woodcutting potion (4)")
+                                || Backpack.contains("Perfect juju woodcutting flask (1)")
+                                || Backpack.contains("Perfect juju woodcutting flask (2)")
+                                || Backpack.contains("Perfect juju woodcutting flask (3)")
+                                || Backpack.contains("Perfect juju woodcutting flask (4)")
+                                || Backpack.contains("Perfect juju woodcutting flask (5)")
+                                || Backpack.contains("Perfect juju woodcutting flask (6)")
+                ) {
+                    hasPerfectJujuPotion = true;
+                } else {
+                    hasPerfectJujuPotion = false;
+                }
                 if (Backpack.isFull()) {
                     println("Going to banking state");
                     botState = BotState.MOVINGTOBANK;
@@ -188,6 +225,65 @@ public class AntanhasElderTrees extends LoopingScript {
         //teleport an urn as soon as possible so we don't have to worry about the interface that pops up if we try to teleport more than 1
         if(Backpack.contains("Decorated woodcutting urn (full)")) {
             Backpack.interact("Decorated woodcutting urn (full)", "Teleport urn");
+        }
+        //this section handles normal juju potion-drinking
+        if(
+            //did we have normal juju potion in inv when script was started?
+                hasNormalJujuPotion
+                        //do we lack the normal juju potion buff?
+                        && ComponentQuery.newQuery(284).spriteId(20016).results().first() == null
+                        //do we have a normal juju potion in inv?
+                        && (
+                        Backpack.contains("Juju woodcutting potion (1)")
+                                || Backpack.contains("Juju woodcutting potion (2)")
+                                || Backpack.contains("Juju woodcutting potion (3)")
+                                || Backpack.contains("Juju woodcutting potion (4)")
+                                || Backpack.contains("Juju woodcutting flask (1)")
+                                || Backpack.contains("Juju woodcutting flask (2)")
+                                || Backpack.contains("Juju woodcutting flask (3)")
+                                || Backpack.contains("Juju woodcutting flask (4)")
+                                || Backpack.contains("Juju woodcutting flask (5)")
+                                || Backpack.contains("Juju woodcutting flask (6)")
+                )
+        ) {
+            //then drink the normal potion
+            drinkPotion("normal");
+            //wait until the normal juju buff appears in bar
+            Execution.delayUntil(20000, () -> {
+                return ComponentQuery.newQuery(284).spriteId(20016).results().first() != null;
+            });
+        }
+        //this section handles perfect juju potion-drinking
+        if(
+            //did we have perfect juju potion in inv when script was started?
+                hasPerfectJujuPotion
+                        //do we lack the perfect juju potion buff?
+                        && ComponentQuery.newQuery(284).spriteId(32757).results().first() == null
+                        //do we have a perfect juju potion in inv?
+                        && (
+                        Backpack.contains("Perfect juju woodcutting potion (1)")
+                                || Backpack.contains("Perfect juju woodcutting potion (2)")
+                                || Backpack.contains("Perfect juju woodcutting potion (3)")
+                                || Backpack.contains("Perfect juju woodcutting potion (4)")
+                                || Backpack.contains("Perfect juju woodcutting flask (1)")
+                                || Backpack.contains("Perfect juju woodcutting flask (2)")
+                                || Backpack.contains("Perfect juju woodcutting flask (3)")
+                                || Backpack.contains("Perfect juju woodcutting flask (4)")
+                                || Backpack.contains("Perfect juju woodcutting flask (5)")
+                                || Backpack.contains("Perfect juju woodcutting flask (6)")
+                )
+        ) {
+            //then drink the perfect potion
+            drinkPotion("perfect");
+            //wait until the perfect juju buff appears in bar
+            Execution.delayUntil(20000, () -> {
+                return ComponentQuery.newQuery(284).spriteId(32757).results().first() != null;
+            });
+        }
+        //drop empty juju vials
+        while(Backpack.contains("Juju vial")) {
+            Backpack.interact("Juju vial", "Drop");
+            Execution.delay(random.nextLong(500, 800));
         }
         //the break condition while woodcutting is if we get our backpack full. notice that this condition works here because handleWoodcutting() doesn't clog up onLoop, so this function will be called up often
         if (Backpack.isFull()) {
@@ -268,8 +364,44 @@ public class AntanhasElderTrees extends LoopingScript {
             Execution.delay(random.nextLong(1000, 3000));
         }
         //it looks like .depositAllExcept(String... names) is currently broken, so I have to use .depositAllExcept(Int... ids)
-        //Execution.delayUntil(random.nextLong(1500, 3000), () -> Bank.depositAllExcept("Elder wood box", "Eternal magic wood box", "Decorated woodcutting urn (r)", "Decorated woodcutting urn", "Decorated woodcutting urn (full)"));
-        Execution.delayUntil(random.nextLong(1500, 3000), () -> Bank.depositAllExcept(54913, 58253, 39012, 39014, 39015));
+        //Execution.delayUntil(random.nextLong(1500, 3000), () -> Bank.depositAllExcept("Elder wood box", "Eternal magic wood box", "Decorated woodcutting urn (r)", "Decorated woodcutting urn", "Decorated woodcutting urn (full)", "Juju woodcutting flask (6)", "Juju woodcutting flask (5)", "Juju woodcutting flask (4)", "Juju woodcutting flask (3)", "Juju woodcutting flask (2)", "Juju woodcutting flask (1)", "Juju woodcutting potion (4)", "Juju woodcutting potion (3)", "Juju woodcutting potion (2)", "Juju woodcutting potion (1)", "Perfect juju woodcutting flask (6)", "Perfect juju woodcutting flask (5)", "Perfect juju woodcutting flask (4)", "Perfect juju woodcutting flask (3)", "Perfect juju woodcutting flask (2)", "Perfect juju woodcutting flask (1)", "Perfect juju woodcutting potion (4)", "Perfect juju woodcutting potion (3)", "Perfect juju woodcutting potion (2)", "Perfect juju woodcutting potion (1)"));
+        Execution.delayUntil(random.nextLong(1500, 3000), () -> Bank.depositAllExcept(54913, 58253, 39012, 39014, 39015, 23149, 23150, 23151, 23152, 23153, 23154, 20015, 20016, 20017, 20018, 32859, 32857, 32855, 32853, 32851, 32849, 32759, 32757, 32755, 32753));
+        //Execution.delay(random.nextLong(1000,2000));
+        if(
+                hasNormalJujuPotion
+                        && !(
+                        Backpack.contains("Juju woodcutting potion (1)")
+                                || Backpack.contains("Juju woodcutting potion (2)")
+                                || Backpack.contains("Juju woodcutting potion (3)")
+                                || Backpack.contains("Juju woodcutting potion (4)")
+                                || Backpack.contains("Juju woodcutting flask (1)")
+                                || Backpack.contains("Juju woodcutting flask (2)")
+                                || Backpack.contains("Juju woodcutting flask (3)")
+                                || Backpack.contains("Juju woodcutting flask (4)")
+                                || Backpack.contains("Juju woodcutting flask (5)")
+                                || Backpack.contains("Juju woodcutting flask (6)")
+                )
+        ) {
+            withdrawPotion("normal");
+        }
+        //Execution.delay(random.nextLong(1000,2000));
+        if(
+                hasPerfectJujuPotion
+                        && !(
+                        Backpack.contains("Perfect juju woodcutting potion (1)")
+                                || Backpack.contains("Perfect juju woodcutting potion (2)")
+                                || Backpack.contains("Perfect juju woodcutting potion (3)")
+                                || Backpack.contains("Perfect juju woodcutting potion (4)")
+                                || Backpack.contains("Perfect juju woodcutting flask (1)")
+                                || Backpack.contains("Perfect juju woodcutting flask (2)")
+                                || Backpack.contains("Perfect juju woodcutting flask (3)")
+                                || Backpack.contains("Perfect juju woodcutting flask (4)")
+                                || Backpack.contains("Perfect juju woodcutting flask (5)")
+                                || Backpack.contains("Perfect juju woodcutting flask (6)")
+                )
+        ) {
+            withdrawPotion("perfect");
+        }
         //Execution.delay(random.nextLong(1000,2000));
         //Bank.close();
         //Execution.delay(random.nextLong(1000,2000));
@@ -277,7 +409,7 @@ public class AntanhasElderTrees extends LoopingScript {
     }
 
     //the big String containing all text in the stats
-    String logString() {
+    public String logString() {
         int xpGained = Skills.WOODCUTTING.getSkill().getExperience() - startingExperience;
         String bigString = "Time elapsed: " + timeElapsed() + "\n";
         bigString = bigString + "Experience gained: " + xpGained + " (" + calculatePerHour(xpGained) + " / hr)\n";
@@ -288,7 +420,7 @@ public class AntanhasElderTrees extends LoopingScript {
     }
 
     //used by logString()
-    public String calculatePerHour(int toBeCalculated) {
+    private String calculatePerHour(int toBeCalculated) {
         long timeToConsider = botState != BotState.STOPPED ? System.currentTimeMillis() : timeScriptWasLastActive;
 
         long timeElapsedMillis = timeToConsider - startingTime;
@@ -302,7 +434,7 @@ public class AntanhasElderTrees extends LoopingScript {
     }
 
     //used by logString()
-    public String timeElapsed() {
+    private String timeElapsed() {
         long endingTime = botState != BotState.STOPPED ? System.currentTimeMillis() : timeScriptWasLastActive;;
         long elapsedTime = endingTime - startingTime;
 
@@ -311,6 +443,63 @@ public class AntanhasElderTrees extends LoopingScript {
         long seconds = TimeUnit.MILLISECONDS.toSeconds(elapsedTime) % 60;
 
         return String.format("%02d:%02d:%02d", hours, minutes, seconds);
+    }
+
+    private void drinkPotion(String whichPotion) {
+        String aux = "";
+        switch(whichPotion) {
+            case "normal" -> aux = "Juju woodcutting";
+            case "perfect" -> aux = "Perfect juju woodcutting";
+        }
+        if(Backpack.contains(aux + " potion (1)")) {
+            Backpack.interact(aux + " potion (1)", "Drink");
+        } else if(Backpack.contains(aux + " flask (1)")) {
+            Backpack.interact(aux + " flask (1)", "Drink");
+        } else if(Backpack.contains(aux + " potion (2)")) {
+            Backpack.interact(aux + " potion (2)", "Drink");
+        } else if(Backpack.contains(aux + " flask (2)")) {
+            Backpack.interact(aux + " flask (2)", "Drink");
+        } else if(Backpack.contains(aux + " potion (3)")) {
+            Backpack.interact(aux + " potion (3)", "Drink");
+        } else if(Backpack.contains(aux + " flask (3)")) {
+            Backpack.interact(aux + " flask (3)", "Drink");
+        } else if(Backpack.contains(aux + " potion (4)")) {
+            Backpack.interact(aux + " potion (4)", "Drink");
+        } else if(Backpack.contains(aux + " flask (4)")) {
+            Backpack.interact(aux + " flask (4)", "Drink");
+        } else if(Backpack.contains(aux + " flask (5)")) {
+            Backpack.interact(aux + " flask (5)", "Drink");
+        } else if(Backpack.contains(aux + " flask (6)")) {
+            Backpack.interact(aux + " flask (6)", "Drink");
+        }
+    }
+    private void withdrawPotion(String whichPotion) {
+        String aux = "";
+        switch(whichPotion) {
+            case "normal" -> aux = "Juju woodcutting";
+            case "perfect" -> aux = "Perfect juju woodcutting";
+        }
+        if(Bank.contains(aux + " flask (6)")) {
+            Bank.withdraw(aux + " flask (6)", 1);
+        } else if(Bank.contains(aux + " flask (5)")) {
+            Bank.withdraw(aux + " flask (5)", 1);
+        } else if(Bank.contains(aux + " potion (4)")) {
+            Bank.withdraw(aux + " potion (4)", 1);
+        } else if(Bank.contains(aux + " flask (4)")) {
+            Bank.withdraw(aux + " flask (4)", 1);
+        } else if(Bank.contains(aux + " potion (3)")) {
+            Bank.withdraw(aux + " potion (3)", 1);
+        } else if(Bank.contains(aux + " flask (3)")) {
+            Bank.withdraw(aux + " flask (3)", 1);
+        } else if(Bank.contains(aux + " potion (2)")) {
+            Bank.withdraw(aux + " potion (2)", 1);
+        } else if(Bank.contains(aux + " flask (2)")) {
+            Bank.withdraw(aux + " flask (2)", 1);
+        } else if(Bank.contains(aux + " potion (1)")) {
+            Bank.withdraw(aux + " potion (1)", 1);
+        } else if(Bank.contains(aux + " flask (1)")) {
+            Bank.withdraw(aux + " flask (1)", 1);
+        }
     }
 
     public BotState getBotState() {
