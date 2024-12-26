@@ -39,7 +39,7 @@ public class AntanhasElderTrees extends LoopingScript {
     private BotState botState = BotState.STOPPED;
     private Random random = new Random();
 
-    //this variable will store the Coordinates of the elder trees, but we can't quite initialize it yet
+    //this variable will sotre the Coordinates of the elder trees, but we can't quite initialize it yet
     private Queue<Coordinate> elderTrees = new LinkedList<>();
     private Boolean pickedUpBirdsNest = false;
     private Boolean hasNormalJujuPotion = false;
@@ -480,25 +480,25 @@ public class AntanhasElderTrees extends LoopingScript {
             case "perfect" -> aux = "Perfect juju woodcutting";
         }
         if(Bank.contains(aux + " flask (6)")) {
-            Bank.withdraw(aux + " flask (6)", 2);
+            Bank.withdraw(aux + " flask (6)", 1);
         } else if(Bank.contains(aux + " flask (5)")) {
-            Bank.withdraw(aux + " flask (5)", 2);
+            Bank.withdraw(aux + " flask (5)", 1);
         } else if(Bank.contains(aux + " potion (4)")) {
-            Bank.withdraw(aux + " potion (4)", 2);
+            Bank.withdraw(aux + " potion (4)", 1);
         } else if(Bank.contains(aux + " flask (4)")) {
-            Bank.withdraw(aux + " flask (4)", 2);
+            Bank.withdraw(aux + " flask (4)", 1);
         } else if(Bank.contains(aux + " potion (3)")) {
-            Bank.withdraw(aux + " potion (3)", 2);
+            Bank.withdraw(aux + " potion (3)", 1);
         } else if(Bank.contains(aux + " flask (3)")) {
-            Bank.withdraw(aux + " flask (3)", 2);
+            Bank.withdraw(aux + " flask (3)", 1);
         } else if(Bank.contains(aux + " potion (2)")) {
-            Bank.withdraw(aux + " potion (2)", 2);
+            Bank.withdraw(aux + " potion (2)", 1);
         } else if(Bank.contains(aux + " flask (2)")) {
-            Bank.withdraw(aux + " flask (2)", 2);
+            Bank.withdraw(aux + " flask (2)", 1);
         } else if(Bank.contains(aux + " potion (1)")) {
-            Bank.withdraw(aux + " potion (1)", 2);
+            Bank.withdraw(aux + " potion (1)", 1);
         } else if(Bank.contains(aux + " flask (1)")) {
-            Bank.withdraw(aux + " flask (1)", 2);
+            Bank.withdraw(aux + " flask (1)", 1);
         }
     }
 
