@@ -13,6 +13,7 @@ import net.botwithus.rs3.game.inventories.Equipment;
 import net.botwithus.rs3.game.minimenu.actions.GroundItemAction;
 import net.botwithus.rs3.game.movement.Movement;
 import net.botwithus.rs3.game.movement.NavPath;
+import net.botwithus.rs3.game.movement.TraverseEvent;
 import net.botwithus.rs3.game.queries.builders.characters.NpcQuery;
 import net.botwithus.rs3.game.queries.builders.components.ComponentQuery;
 import net.botwithus.rs3.game.queries.builders.items.GroundItemQuery;
@@ -39,12 +40,32 @@ public class AntanhasElderTrees extends LoopingScript {
     private BotState botState = BotState.STOPPED;
     private Random random = new Random();
 
-    //this variable will sotre the Coordinates of the elder trees, but we can't quite initialize it yet
+    //this variable will store the Coordinates of the elder trees, but we can't quite initialize it yet
     private Queue<Coordinate> elderTrees = new LinkedList<>();
     private Boolean pickedUpBirdsNest = false;
     private Boolean hasNormalJujuPotion = false;
     private Boolean hasPerfectJujuPotion = false;
     private Pattern birdsNestPattern = Pattern.compile("ird's");
+
+    private final Coordinate[] elderTreesToPickFrom = {
+            new Coordinate(3257, 3371, 0),  //Varrock
+            new Coordinate(3090, 3458, 0),  //Edgeville
+            new Coordinate(2574, 3064, 0),  //Yanille
+            new Coordinate(2732, 3403, 0),  //Legends' Guild
+            new Coordinate(2434, 3452, 0),  //Tree Gnome Stronghold
+            new Coordinate(2325, 3606, 0),  //Piscatoris hunting area
+            new Coordinate(3101, 3215, 0),  //Draynor
+            new Coordinate(2936, 3228, 0),  //Rimmington
+            new Coordinate(3052, 3316, 0),  //Falador
+            new Coordinate(2293, 3150, 0),  //Lletya
+            new Coordinate(3374, 3543, 0),  //Grove
+            new Coordinate(2271, 3384, 1)   //Prifddinas
+    };
+
+    public Boolean[] checkboxesOfElderTreesToPickFrom = {
+            true, true, true, false, false, false, false, false, false, false, false, false
+    };
+
     LinkedList<String> logNames = new LinkedList<>();
     LinkedList<Integer> logAmounts = new LinkedList<>();
     int startingExperience = Skills.WOODCUTTING.getSkill().getExperience();
@@ -73,11 +94,12 @@ public class AntanhasElderTrees extends LoopingScript {
 
         //initializing the 3 elder tree spots we will be using
         //south of Varrock
-        elderTrees.add(new Coordinate(3257, 3371, 0));
+        //elderTrees.add(new Coordinate(3257, 3371, 0));
         //south of Edgeville
-        elderTrees.add(new Coordinate(3090, 3458, 0));
+        //elderTrees.add(new Coordinate(3090, 3458, 0));
         //south of Yanille
-        elderTrees.add(new Coordinate(2574, 3064, 0));
+        //elderTrees.add(new Coordinate(2574, 3064, 0));
+        //the elderTrees initialization has been moved to onLoop() now that the user can choose them before pressing start
 
         //this subscription is just to check whether bird's nests are picked up
         subscribe(InventoryUpdateEvent.class, inventoryUpdateEvent -> {
@@ -93,7 +115,7 @@ public class AntanhasElderTrees extends LoopingScript {
             //more events available at https://botwithus.net/javadoc/net.botwithus.rs3/net/botwithus/rs3/events/impl/package-summary.html
             //println("Chatbox message received: %s", chatMessageEvent.getMessage());
             //only update log if: a new item appears in the inv, or in the wood box other than an eternal magic log, and the script isn't stopped, and the bank interface isn't open
-            if(inventoryUpdateEvent.getNewItem().getName() != null && (inventoryUpdateEvent.getInventoryId() == 93 || (inventoryUpdateEvent.getInventoryId() == 937 && !inventoryUpdateEvent.getNewItem().getName().equals("Eternal magic logs")) ) && botState != BotState.STOPPED && !Interfaces.isOpen(517)) {
+            if(inventoryUpdateEvent.getNewItem().getName() != null && (inventoryUpdateEvent.getInventoryId() == 93 || (inventoryUpdateEvent.getInventoryId() == 937 && !inventoryUpdateEvent.getNewItem().getName().equals("Elder logs")) ) && botState != BotState.STOPPED && !Interfaces.isOpen(517)) {
                 int increment;
                 if (inventoryUpdateEvent.getOldItem().getName() == null) {
                     increment = inventoryUpdateEvent.getNewItem().getStackSize();
@@ -137,6 +159,19 @@ public class AntanhasElderTrees extends LoopingScript {
             }
             //this only gets called when the start button is clicked, it can't clog onLoop() up
             case SETUP -> {
+
+                //empty elderTrees array
+                while(elderTrees.size() > 0) {
+                    elderTrees.remove();
+                }
+                //fill elderTrees array back up
+                for(int i = 0; i < 12; i++) {
+                    if(checkboxesOfElderTreesToPickFrom[i]) {
+                        elderTrees.add(elderTreesToPickFrom[i]);
+                    }
+                }
+
+                //set the initial flag for normal juju potions
                 if(
                         Backpack.contains("Juju woodcutting potion (1)")
                                 || Backpack.contains("Juju woodcutting potion (2)")
@@ -153,6 +188,7 @@ public class AntanhasElderTrees extends LoopingScript {
                 } else {
                     hasNormalJujuPotion = false;
                 }
+                //set the initial flag for perfect juju potions
                 if(
                         Backpack.contains("Perfect juju woodcutting potion (1)")
                                 || Backpack.contains("Perfect juju woodcutting potion (2)")
@@ -169,6 +205,7 @@ public class AntanhasElderTrees extends LoopingScript {
                 } else {
                     hasPerfectJujuPotion = false;
                 }
+
                 if (Backpack.isFull()) {
                     println("Going to banking state");
                     botState = BotState.MOVINGTOBANK;
@@ -231,6 +268,40 @@ public class AntanhasElderTrees extends LoopingScript {
         if(Backpack.contains("Decorated woodcutting urn (full)")) {
             Backpack.interact("Decorated woodcutting urn (full)", "Teleport urn");
         }
+        //drop empty juju vials
+        while(Backpack.contains("Juju vial")) {
+            Backpack.interact("Juju vial", "Drop");
+            Execution.delay(random.nextLong(500, 800));
+        }
+        //the break condition while woodcutting is if we get our backpack full. notice that this condition works here because handleWoodcutting() doesn't clog up onLoop, so this function will be called up often
+        if (Backpack.isFull()) {
+            //if we're on the grove, we can use the log piles to deposit all our stuff, including what's in the wood box, saving us from making banking trips
+            SceneObject logPile = SceneObjectQuery.newQuery().name("Log Pile").option("Deposit Logs").results().nearest();
+            if(logPile != null) {
+                logPile.interact("Deposit Logs");
+                //wait until the player has actually reached the pile and has deposited
+                Execution.delayUntil(20000, () -> {
+                    return player.getAnimationId() == -1 && !player.isMoving() && player.distanceTo(logPile) < 2.237;
+                });
+                Execution.delay(random.nextLong(500,1500));
+            } else {
+                Execution.delay(random.nextLong(500, 1500));
+                //First try filling the wood box
+                if (Backpack.contains("Elder wood box")) {
+                    Backpack.interact("Elder wood box", "Fill");
+                    Execution.delay(random.nextLong(1500, 3000));
+                }
+                if (Backpack.contains("Eternal magic wood box")) {
+                    Backpack.interact("Eternal magic wood box", "Fill");
+                    Execution.delay(random.nextLong(1500, 3000));
+                }
+                //if inventory is still full after filling the wood box, go to bank
+                if (Backpack.isFull()) {
+                    if (botState != BotState.STOPPED) botState = BotState.MOVINGTOBANK;
+                    return random.nextLong(1500, 3000);
+                }
+            }
+        }
         //this section handles normal juju potion-drinking
         if(
             //did we have normal juju potion in inv when script was started?
@@ -285,29 +356,6 @@ public class AntanhasElderTrees extends LoopingScript {
                 return ComponentQuery.newQuery(284).spriteId(32757).results().first() != null;
             });
         }
-        //drop empty juju vials
-        while(Backpack.contains("Juju vial")) {
-            Backpack.interact("Juju vial", "Drop");
-            Execution.delay(random.nextLong(500, 800));
-        }
-        //the break condition while woodcutting is if we get our backpack full. notice that this condition works here because handleWoodcutting() doesn't clog up onLoop, so this function will be called up often
-        if (Backpack.isFull()) {
-            Execution.delay(random.nextLong(500,1500));
-            //First try filling the wood box
-            if (Backpack.contains("Elder wood box")) {
-                Backpack.interact("Elder wood box", "Fill");
-                Execution.delay(random.nextLong(1500,3000));
-            }
-            if (Backpack.contains("Eternal magic wood box")) {
-                Backpack.interact("Eternal magic wood box", "Fill");
-                Execution.delay(random.nextLong(1500,3000));
-            }
-            //if inventory is still full after filling the wood box, go to bank
-            if (Backpack.isFull()) {
-                if (botState != BotState.STOPPED) botState = BotState.MOVINGTOBANK;
-                return random.nextLong(1500, 3000);
-            }
-        }
         //check grounditems for a bird's nest
         GroundItem birdsNest = GroundItemQuery.newQuery().name(birdsNestPattern).results().nearest();
         if(birdsNest != null) {
@@ -319,17 +367,50 @@ public class AntanhasElderTrees extends LoopingScript {
             pickedUpBirdsNest = false;
         }
         //if we detect the ID of the cut-down elder tree, time to rejig the queue of elder trees and move on to the next one
-        SceneObject elderTreeCutDown = SceneObjectQuery.newQuery().id(87509).results().nearest();
+        //if the currently targeted tree is the one in the Grove or in Prifddinas, we need different SceneObject IDs for its fallen tree counterpart
+        int aux1 = 87509;
+        //if the currently targeted tree is in the Grove
+        if(elderTrees.peek().equals(new Coordinate(3374, 3543, 0))) {
+            aux1 = 125585;
+        //if the currently targeted tree is in the Prifddinas
+        } else if(elderTrees.peek().equals(new Coordinate(2271, 3384, 1))) {
+            aux1 = 93366;
+        }
+        SceneObject elderTreeCutDown = SceneObjectQuery.newQuery().id(aux1).results().nearest();
         if(elderTreeCutDown != null) {
+            //before we move on to the next tree, deposit what we have in a log pile, if there is one
+            SceneObject logPile = SceneObjectQuery.newQuery().name("Log Pile").option("Deposit Logs").results().nearest();
+            if(logPile != null) {
+                logPile.interact("Deposit Logs");
+                //wait until the player has actually reached the pile and has deposited
+                Execution.delayUntil(20000, () -> {
+                    return player.getAnimationId() == -1 && !player.isMoving() && player.distanceTo(logPile) < 2.237;
+                });
+                Execution.delay(random.nextLong(500,1500));
+            }
             elderTrees.add(elderTrees.remove());
             if (botState != BotState.STOPPED) botState = BotState.MOVINGTOTREE;
-            return random.nextLong(1500, 3000);
+            //return random.nextLong(1500, 3000);
         }
         //if idle near a non-cut-down tree, start chopping
+        //if the currently targeted tree is the one in the Grove or in Prifddinas, we need different SceneObject IDs for it
+        int aux2 = 87508;
+        //if the currently targeted tree is in the Grove
+        if(elderTrees.peek().equals(new Coordinate(3374, 3543, 0))) {
+            aux2 = 125584;
+        //if the currently targeted tree is in Prifddinas
+        } else if(elderTrees.peek().equals(new Coordinate(2271, 3384, 1))) {
+            aux2 = 93317;
+        }
         if(player.getAnimationId() == -1) {
-            SceneObject elderTree = SceneObjectQuery.newQuery().id(87508).results().nearest();
+            SceneObject elderTree = SceneObjectQuery.newQuery().id(aux2).results().nearest();
             if(elderTree != null) {
                 elderTree.interact(elderTree.getOptions().get(0));
+            //if there's no tree standing up nor cut down, it means the player is at the Grove or Prif but doesn't have that tree available, so remove it from the queue
+            } else if(elderTree == null && elderTreeCutDown == null) {
+                elderTrees.remove();
+                if (botState != BotState.STOPPED) botState = BotState.MOVINGTOTREE;
+                return random.nextLong(1500, 3000);
             }
         }
         return random.nextLong(1500,3000);
@@ -347,6 +428,7 @@ public class AntanhasElderTrees extends LoopingScript {
         Movement.walkTo(vicinity.getX(), vicinity.getY(), false);
         Execution.delay(random.nextLong(1000,2000));
         Movement.traverse(NavPath.resolve(new Area.Circular(whichCoordinate, 2).getRandomWalkableCoordinate()));
+
         return random.nextLong(1500,3000);
     }
 
@@ -362,7 +444,7 @@ public class AntanhasElderTrees extends LoopingScript {
             Execution.delay(random.nextLong(1000,3000));
         }
         */
-        //also, we can't directly interact with the wood box from its Item returned by an inv query, so we have to use its component; ".newQuery(517).componentIndex(15)" adresses the inventory when the bank is open
+        //also, we can't directly interact with the wood box from its Item returned by an inv query, so we have to use its component; ".newQuery(517).componentIndex(15)" addresses the inventory when the bank is open
         Component woodBoxComp = ComponentQuery.newQuery(517).componentIndex(15).itemName(Pattern.compile("ood box")).option("Empty - logs and bird's nests").results().first();
         if (woodBoxComp != null) {
             println("Deposited box contents: " + woodBoxComp.interact("Empty - logs and bird's nests"));
@@ -515,4 +597,11 @@ public class AntanhasElderTrees extends LoopingScript {
         this.botState = botState;
     }
 
+    public Boolean getCheckboxesOfElderTreesToPickFrom(int index) {
+        return checkboxesOfElderTreesToPickFrom[index];
+    }
+
+    public void setCheckboxesOfElderTreesToPickFrom(int index, Boolean checkedOrNot) {
+        this.checkboxesOfElderTreesToPickFrom[index] = checkedOrNot;
+    }
 }
