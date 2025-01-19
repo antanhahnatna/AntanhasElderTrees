@@ -1,5 +1,6 @@
 package net.botwithus;
 
+import net.botwithus.rs3.events.impl.SkillUpdateEvent;
 import net.botwithus.rs3.game.hud.interfaces.Interfaces;
 import net.botwithus.api.game.hud.inventories.Bank;
 import net.botwithus.internal.scripts.ScriptDefinition;
@@ -68,7 +69,7 @@ public class AntanhasElderTrees extends LoopingScript {
 
     LinkedList<String> logNames = new LinkedList<>();
     LinkedList<Integer> logAmounts = new LinkedList<>();
-    int startingExperience = Skills.WOODCUTTING.getSkill().getExperience();
+    int experienceGained = 0;
     long startingTime = System.currentTimeMillis();
     long timeScriptWasLastActive = System.currentTimeMillis();
 
@@ -132,6 +133,13 @@ public class AntanhasElderTrees extends LoopingScript {
                         logAmounts.push(increment);
                     }
                 }
+            }
+        });
+
+        //subscription to keep track of xp gained
+        subscribe(SkillUpdateEvent.class, skillUpdateEvent -> {
+            if(Skills.byId(skillUpdateEvent.getId()) == Skills.WOODCUTTING && botState != BotState.STOPPED) {
+                experienceGained += skillUpdateEvent.getExperience() - skillUpdateEvent.getOldExperience();
             }
         });
 
@@ -497,9 +505,8 @@ public class AntanhasElderTrees extends LoopingScript {
 
     //the big String containing all text in the stats
     public String logString() {
-        int xpGained = Skills.WOODCUTTING.getSkill().getExperience() - startingExperience;
         String bigString = "Time elapsed: " + timeElapsed() + "\n";
-        bigString = bigString + "Experience gained: " + xpGained + " (" + calculatePerHour(xpGained) + " / hr)\n";
+        bigString = bigString + "Experience gained: " + experienceGained + " (" + calculatePerHour(experienceGained) + " / hr)\n";
         for(var i = logNames.size() - 1; i >= 0; i--) {
             bigString = bigString + logNames.get(i) + " x " + logAmounts.get(i) + " (" + calculatePerHour(logAmounts.get(i)) + " / hr)\n";
         }
