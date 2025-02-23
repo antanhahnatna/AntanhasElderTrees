@@ -43,6 +43,7 @@ public class AntanhasElderTrees extends LoopingScript {
 
     //this variable will store the Coordinates of the elder trees, but we can't quite initialize it yet
     private Queue<Coordinate> elderTrees = new LinkedList<>();
+    private Boolean pickUpBirdsNests = true;
     private Boolean pickedUpBirdsNest = false;
     private Boolean hasNormalJujuPotion = false;
     private Boolean hasPerfectJujuPotion = false;
@@ -366,7 +367,7 @@ public class AntanhasElderTrees extends LoopingScript {
         }
         //check grounditems for a bird's nest
         GroundItem birdsNest = GroundItemQuery.newQuery().name(birdsNestPattern).results().nearest();
-        if(birdsNest != null) {
+        if(birdsNest != null && pickUpBirdsNests) {
             birdsNest.interact(GroundItemAction.GROUND_ITEM3);
             //we have to rely on pickedUpBirdsNest set by a subscription in order to know when we picked up the bird's nest
             Execution.delayUntil(20000, () -> {
@@ -435,9 +436,28 @@ public class AntanhasElderTrees extends LoopingScript {
         //there used to be a walkTo(Coordinate, boolean) among other versions but they were removed after deprecation so I'm using the only version left, walkTo(int, int, boolean)
         Movement.walkTo(vicinity.getX(), vicinity.getY(), false);
         Execution.delay(random.nextLong(1000,2000));
-        Movement.traverse(NavPath.resolve(new Area.Circular(whichCoordinate, 2).getRandomWalkableCoordinate()));
+        TraverseEvent.State moveState = Movement.traverse(NavPath.resolve(new Area.Circular(whichCoordinate, 2).getRandomWalkableCoordinate()));
+        switch (moveState) {
+            case FINISHED:
+                println("handleMoving() | Successfully moved to the area.");
+                return random.nextLong(1500,3000);
 
-        return random.nextLong(1500,3000);
+            case NO_PATH:
+            case FAILED:
+                println("handleMoving() | Path state: " + moveState.toString());
+                println("handleMoving() | No path found or movement failed. Please navigate to the correct area manually.");
+                //botState = BotState.STOPPED;
+                Movement.traverse(NavPath.resolve(new Area.Circular(whichCoordinate, 2).getRandomWalkableCoordinate()));
+                return random.nextLong(1500,3000);
+
+            default:
+                println("handleMoving() | Unexpected state: " + moveState.toString());
+                //botState = BotState.STOPPED;
+                Movement.traverse(NavPath.resolve(new Area.Circular(whichCoordinate, 2).getRandomWalkableCoordinate()));
+                return random.nextLong(1500,3000);
+        }
+        //println("Movement.traverse(): %s", moveState);
+        //return random.nextLong(1500,3000);
     }
 
     private long handleBanking() {
@@ -604,11 +624,11 @@ public class AntanhasElderTrees extends LoopingScript {
         this.botState = botState;
     }
 
-    public Boolean getCheckboxesOfElderTreesToPickFrom(int index) {
-        return checkboxesOfElderTreesToPickFrom[index];
+    public Boolean getPickUpBirdsNests() {
+        return pickUpBirdsNests;
     }
 
-    public void setCheckboxesOfElderTreesToPickFrom(int index, Boolean checkedOrNot) {
-        this.checkboxesOfElderTreesToPickFrom[index] = checkedOrNot;
+    public void setPickUpBirdsNests(Boolean pickUpBirdsNests) {
+        this.pickUpBirdsNests = pickUpBirdsNests;
     }
 }

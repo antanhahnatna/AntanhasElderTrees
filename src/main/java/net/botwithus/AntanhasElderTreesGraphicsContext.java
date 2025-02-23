@@ -43,8 +43,9 @@ public class AntanhasElderTreesGraphicsContext extends ScriptGraphicsContext {
                         script.timeScriptWasLastActive = System.currentTimeMillis();
                     }
                     ImGui.EndDisabled();
-                    ImGui.Text("Select at least 3 elder trees:");
                     ImGui.BeginDisabled(script.getBotState() != AntanhasElderTrees.BotState.STOPPED);
+                    script.setPickUpBirdsNests(ImGui.Checkbox("Pick bird's nests up?", script.getPickUpBirdsNests()));
+                    ImGui.Text("Select at least 3 elder trees:");
                     script.checkboxesOfElderTreesToPickFrom[0] = ImGui.Checkbox("Varrock", script.checkboxesOfElderTreesToPickFrom[0]);
                     script.checkboxesOfElderTreesToPickFrom[1] = ImGui.Checkbox("Edgeville", script.checkboxesOfElderTreesToPickFrom[1]);
                     script.checkboxesOfElderTreesToPickFrom[2] = ImGui.Checkbox("Yanille", script.checkboxesOfElderTreesToPickFrom[2]);
